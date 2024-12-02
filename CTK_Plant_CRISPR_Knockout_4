@@ -1,0 +1,164 @@
+#!/Users/ctkuc/Documents/bio_env/bin/python
+
+# Import necessary modules
+try:
+    from Bio import SeqIO
+    from Bio.Seq import Seq
+    from Bio.SeqRecord import SeqRecord
+    from Bio.Restriction import *
+except ModuleNotFoundError as e:
+    print("Required module not found: ", e)
+    print("Please install missing modules using 'pip install biopython'")
+    exit()
+
+# Define a dictionary to store CRISPR toolkit parameters
+CRISPR_TOOLKITS = {
+    "SpCas9 Toolkit": {
+        "organisms": ["Arabidopsis", "Rice", "Maize", "Tomato", "Soybean"],
+        "cas_system": "SpCas9",
+        "pam": "NGG",
+        "description": "Highly efficient and commonly used in plant genome editing. Requires NGG PAM, limiting versatility in AT-rich regions. Used in various crops for knockout and trait enhancement."
+    },
+    "FnCas12a (Cpf1) Toolkit": {
+        "organisms": ["Arabidopsis", "Wheat", "Tomato"],
+        "cas_system": "FnCas12a (Cpf1)",
+        "pam": "TTTV",
+        "description": "Recognizes T-rich PAM sites, making it suitable for AT-rich plant genomes. Produces staggered cuts, aiding in precise edits and reducing off-target effects."
+    },
+    "SaCas9 Toolkit": {
+        "organisms": ["Rice", "Maize", "Barley"],
+        "cas_system": "SaCas9",
+        "pam": "NNGRRT",
+        "description": "Smaller size facilitates delivery via viral vectors. Effective for multiplex editing, especially in compact plant genomes."
+    }
+}
+
+# General function to find PAM sequence in a target DNA
+def find_pam_general(target_sequence, pam):
+    """
+    Generalized function to find the index of the PAM sequence.
+    """
+    if 'N' in pam:
+        # Replace 'N' with '.' to allow matching any base
+        pam_regex = pam.replace('N', '.')
+        import re
+        matches = list(re.finditer(pam_regex, target_sequence))
+        if matches:
+            return matches[0].start()
+    else:
+        import re
+        pam_regex = pam.replace('V', '[ACG]')
+        matches = list(re.finditer(pam_regex, target_sequence))
+        if matches:
+            return matches[0].start()
+    return -1
+
+# Function to design gRNA or crRNA for a specific CRISPR toolkit
+def design_grna_general(target_sequence, toolkit_name):
+    """
+    Design guide RNA for a given CRISPR toolkit.
+    :param target_sequence: DNA sequence to target
+    :param toolkit_name: CRISPR toolkit name (e.g., SpCas9 Toolkit, FnCas12a (Cpf1) Toolkit)
+    :return: Complete gRNA sequence
+    """
+    toolkit_info = CRISPR_TOOLKITS.get(toolkit_name)
+    if not toolkit_info:
+        raise ValueError(f"Unknown CRISPR toolkit: {toolkit_name}")
+
+    pam = toolkit_info["pam"]
+    protospacer_length = 20 if toolkit_info["cas_system"] in ["SpCas9", "SaCas9"] else 24
+    scaffold = "GTTTTAGAGCTAGAAATAGCAAGTTAAAATAAGGCTAGTCCGTTATCAACTTGAAAAAGTGGCACCGAGTCGGTGC" if toolkit_info["cas_system"] == "SpCas9" else "TTTAACTTTGCTATTTCTAGCTCTAAAAC"
+
+    # Ensure the target sequence is long enough
+    required_length = protospacer_length + len(pam)
+    if len(target_sequence) < required_length:
+        raise ValueError(f"Target sequence is too short. It must be at least {required_length} bp long.")
+
+    pam_index = find_pam_general(target_sequence, pam)
+    if pam_index == -1:
+        raise ValueError(f"PAM sequence '{pam}' not found in target sequence: {target_sequence}")
+
+    protospacer_start = pam_index - protospacer_length
+    if protospacer_start < 0:
+        raise ValueError(f"Target sequence is too short to extract a protospacer of length {protospacer_length} before the PAM. Please provide a longer target sequence.")
+
+    protospacer = target_sequence[protospacer_start:pam_index]
+
+    # Make sure the protospacer length matches the desired length
+    if len(protospacer) != protospacer_length:
+        raise ValueError(f"Protospacer length is incorrect. Expected {protospacer_length} bp, got {len(protospacer)} bp.")
+
+    grna = protospacer + scaffold
+    return grna.replace("T", "U")  # Replace T with U for RNA
+
+# Construct CRISPR vector class
+class PlantCRISPRConstruct:
+    def __init__(self, guide_rna_sequence, plant_promoter, cas9_gene, selection_marker, terminator):
+        self.guide_rna_sequence = guide_rna_sequence
+        self.plant_promoter = plant_promoter
+        self.cas9_gene = cas9_gene
+        self.selection_marker = selection_marker
+        self.terminator = terminator
+        self.vector = None
+
+    def create_construct(self):
+        """
+        Create a CRISPR construct specific for plant knockout.
+        """
+        # Define the vector components with plant-specific details
+        self.vector = f"Promoter: {self.plant_promoter}\n" \
+                      f"gRNA: {self.guide_rna_sequence}\n" \
+                      f"Cas9: {self.cas9_gene}\n" \
+                      f"Terminator: {self.terminator}\n" \
+                      f"Selection Marker: {self.selection_marker}"
+        return self.vector
+
+    def enzyme_digest_and_ligation(self, enzyme, insert_sequence):
+        """
+        Simulate the enzyme digest and ligation process.
+        :param enzyme: Restriction enzyme for digest
+        :param insert_sequence: Sequence to insert into the vector
+        """
+        print(f"Digesting with enzyme {enzyme}...")
+        print(f"Ligation of insert sequence: {insert_sequence} into vector.")
+
+# Transformation function
+
+def agrobacterium_transformation(plant_tissue, agrobacterium_strain, binary_vector):
+    """
+    Perform Agrobacterium tumefaciens-mediated transformation on plant tissues.
+    :param plant_tissue: Plant tissue to be transformed (e.g., leaf segments)
+    :param agrobacterium_strain: Strain of Agrobacterium used for transformation
+    :param binary_vector: CRISPR construct in a binary vector
+    """
+    print(f"Co-cultivating {plant_tissue} with {agrobacterium_strain} carrying {binary_vector}...")
+    print("Performing selection using kanamycin or hygromycin.")
+    print("Transferring to tissue culture for plant regeneration.")
+
+# Primer design function
+def design_pcr_primers(target_sequence, primer_length=20):
+    """
+    Design PCR primers for amplifying a target region.
+    :param target_sequence: DNA sequence to target
+    :param primer_length: Length of each primer
+    :return: forward and reverse primer sequences
+    """
+    forward_primer = target_sequence[:primer_length]
+    reverse_primer = str(Seq(target_sequence[-primer_length:]).reverse_complement())
+    return forward_primer, reverse_primer
+
+# Example usage
+plant_promoter = "CaMV 35S"  # Plant-specific promoter from the literature
+terminator = "tHSP18"  # Plant-specific terminator as suggested in the document
+
+target_sequence = "GCTGATCGTACTGACGTTGATTTTAGCTGACTGATCAGGTAGCGTAGTTTACGCTGATCGTACTGACGCGTAGTTGACCGTAGCTGATCGTACGTAGTTTAACTGATCGTACTGACGTTGACGTTGACCGTAGCTGATCGTAGCTGACGTTGACGCTAGCTGATCGTACTGACGGCTGATCGTACTGACGTTGACGATCGTAGCTGATCGTACTGACGTTGACGCTGATCGTACTGACGTTGACG"
+
+# Design gRNA
+grna_sequence = design_grna_general(target_sequence, "SpCas9 Toolkit")
+
+# Create CRISPR construct
+construct = PlantCRISPRConstruct(grna_sequence, plant_promoter, "Cas9", "Hygromycin resistance", terminator)
+print(construct.create_construct())
+
+# Perform transformation
+agrobacterium_transformation("Leaf segments", "Agrobacterium GV3101", "CRISPR binary vector")

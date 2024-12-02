@@ -1,0 +1,55 @@
+# Project: Plant Genome Editing using CRISPR
+
+## Project Scope
+This project focuses on designing and implementing a three-tiered architecture for a Python-based toolkit for CRISPR-mediated genome editing in plants. The main purpose of this toolkit is to facilitate gene knockouts in various plant species using different CRISPR/Cas systems. This project involves designing guide RNAs (gRNAs), constructing plant-specific CRISPR vectors, and simulating transformation processes to deliver these vectors into plant tissues. The project aims to make the process of plant gene editing more accessible by providing a streamlined and reusable codebase.
+
+The three-tiered architecture is structured as follows:
+1. **Top Level (Construction File Creation)**: Takes the plant name and gene sequence as inputs and outputs a construction file describing the steps for performing a knockout. It uses the toolkit and gRNA designed in lower layers to generate the final construction file.
+2. **Second Level (Toolkit Selection)**: Accepts the plant name and selects the appropriate CRISPR toolkit, which will inform the construction file creation at the top level. This level provides the necessary information to choose the correct PAM sequence and other properties for each plant.
+3. **Bottom Level (gRNA Design)**: Accepts a PAM sequence and a gene sequence, and outputs a protospacer and a tracer RNA to generate a gRNA, which is used to modify the construction file. This level contains core functions to design the gRNA and verify the target site.
+
+## Developed Functions and Classes
+
+### 1. `find_pam_general(target_sequence, pam)`
+This function is used to locate the position of a Protospacer Adjacent Motif (PAM) in a given DNA sequence. The PAM sequence is crucial for guiding the Cas protein to the correct location on the target DNA.
+
+### 2. `design_grna_general(target_sequence, toolkit_name)`
+This function is responsible for designing a gRNA sequence for a specific CRISPR toolkit. It takes the target DNA sequence and uses information from the selected toolkit to create a guide RNA with the appropriate protospacer and scaffold.
+
+### 3. `PlantCRISPRConstruct` Class
+This class represents the CRISPR construct for a plant genome editing experiment. It is initialized with various components including the gRNA, plant promoter, Cas9 gene, terminator, and selection marker. The class provides methods to:
+- **`create_construct()`**: Create a CRISPR construct specific for plant knockout experiments.
+- **`enzyme_digest_and_ligation(enzyme, insert_sequence)`**: Simulate the enzyme digestion and ligation process for inserting DNA fragments into the construct.
+
+### 4. `agrobacterium_transformation(plant_tissue, agrobacterium_strain, binary_vector)`
+This function simulates the Agrobacterium tumefaciens-mediated transformation process for introducing CRISPR constructs into plant tissues. This transformation method is widely used in plant genetic engineering.
+
+### 5. `design_pcr_primers(target_sequence, primer_length=20)`
+This function designs forward and reverse PCR primers for amplifying a specific target region in a DNA sequence. It generates primers of the specified length, suitable for PCR amplification of edited genes.
+
+## Accomplishments
+- **Three-Tiered Architecture**: Developed a three-tiered architecture for the CRISPR toolkit, consisting of the Construction File Creation layer, Toolkit Selection layer, and gRNA Design layer, allowing for better separation of concerns and maintainability.
+- **Plant-Specific CRISPR Toolkit**: Developed a toolkit that supports multiple Cas systems, such as SpCas9, FnCas12a, and SaCas9, for plant genome editing. Each toolkit includes information about organisms that it is compatible with, PAM sequences, and specific features.
+- **Guide RNA Design**: Implemented functionality to design gRNAs tailored to different Cas systems, enhancing the versatility and precision of gene editing in plant species.
+- **CRISPR Vector Construction**: Created a class for constructing plant-specific CRISPR vectors, incorporating key components like promoters and selection markers.
+- **Plant Transformation Simulation**: Included simulation of Agrobacterium-mediated transformation, which is commonly used for gene editing in plants.
+- **Testing**: Provided unit tests using `pytest` to validate the functionality of the core components of the toolkit, ensuring reliability and robustness of the code.
+
+## How to Run the Project
+1. Install the required dependencies using:
+   ```sh
+   pip install biopython pytest
+   ```
+
+2. Run the test suite to verify that all functions work as expected:
+   ```sh
+   pytest plant_crispr_readme_pytest.py
+   ```
+
+3. Use the functions and classes in your plant genome editing experiments by importing the relevant modules.
+
+## Future Improvements
+- **Optimization of gRNA Design**: Implement an optimization algorithm to minimize off-target effects and maximize on-target efficiency.
+- **Plant Tissue-Specific Promoters**: Incorporate additional promoters that are specific to certain plant tissues to provide more precise control of Cas expression.
+- **User Interface**: Develop a graphical user interface to make the toolkit more accessible to users with minimal programming experience.
+
